@@ -1,11 +1,20 @@
-* text=auto eol=lf
+# Force LF line endings for all files that end up inside Linux containers.
+# Prevents "\\r: not found" errors when Windows users clone and build.
 
-*.blade.php diff=html
-*.css diff=css
-*.html diff=html
-*.md diff=markdown
-*.php diff=php
+# Shell scripts (entrypoints, deploy)
+*.sh text eol=lf
 
-/.github export-ignore
-CHANGELOG.md export-ignore
-.styleci.yml export-ignore
+# Docker and container configs
+Dockerfile* text eol=lf
+docker-compose*.yml text eol=lf
+.dockerignore text eol=lf
+
+# Nginx configs
+*.conf text eol=lf
+
+# PHP configs
+*.ini text eol=lf
+*.php text eol=lf
+
+# SQL init scripts
+*.sql text eol=lf

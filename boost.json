@@ -1,11 +1,15 @@
 {
     "agents": [
-        "claude_code",
-        "cursor"
+        "gemini",
+        "opencode"
     ],
     "guidelines": true,
     "mcp": true,
     "nightwatch_mcp": false,
+    "packages": [
+        "filament/filament",
+        "filament/blueprint"
+    ],
     "sail": false,
     "skills": [
         "laravel-best-practices",
