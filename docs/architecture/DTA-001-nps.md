@@ -1,7 +1,7 @@
 # Arquitetura: Sistema NPS — Colégio Pense
 
 **Código:** DTA-001
-**Versão:** 1.1
+**Versão:** 1.2
 **Data:** 2026-04-22
 **Status:** Rascunho
 **Referência:** DRF-001
@@ -68,7 +68,7 @@ O sistema **não** requer login de aluno/responsável; a identificação é feit
 | **RN02** | NPS por pergunta (1–5): Promotores = 4, 5; Detratores = 1, 2, 3; NPS = (P − D) / T × 100. |
 | **RN03** | NPS geral (0–10): Promotores = 9, 10; Neutros = 7, 8; Detratores = 0–6. |
 | **RN04** | Lote aceita respostas quando **Active** e dentro do período (`starts_at` ≤ now ≤ `ends_at`). |
-| **RN05** | Uma resposta por matrícula por lote (`unique(enrollment_id, survey_batch_id)`). |
+| **RN05** | Uma resposta por matrícula por lote (`unique(enrollment_id, survey_batch_id)`). Se a resposta for apenas *soft-deleted*, o par `(enrollment_id, survey_batch_id)` continua ocupando a constraint: nova submissão exige `forceDelete` da resposta anterior ou decisão explícita de negócio (ver §5.13). |
 | **RN06** | Matrícula resolve enrollment do **ano atual** → unidade, segmento e respondente. |
 | **RN07** | Professores avaliados = vinculados ao segmento + unidade do respondente. |
 | **RN08** | Respostas NSA não entram no denominador do cálculo NPS. |
@@ -111,7 +111,7 @@ O sistema **não** requer login de aluno/responsável; a identificação é feit
 | RN02 | NpsCalculationService | Fórmula aplicada sobre respostas 1–5 |
 | RN03 | NpsCalculationService | Fórmula aplicada sobre respostas 0–10 |
 | RN04 | CompleteSurveyResponseAction, SurveyBatchPolicy | Verifica status=Active + now entre starts_at/ends_at |
-| RN05 | Migration (unique constraint) + CompleteSurveyResponseAction | `unique(enrollment_id, survey_batch_id)` + check na Action |
+| RN05 | Migration (unique constraint) + CompleteSurveyResponseAction | `unique(enrollment_id, survey_batch_id)` + check na Action; alinhar com política de resubmissão vs `SoftDeletes` (§5.13) |
 | RN06 | EnrollmentResolverService | Query: `Enrollment::where('registration_code', $code)->where('year', now()->year)` |
 | RN07 | PublicSurveyForm (Livewire) | Filtra `SegmentTeacher` por segment_id + unit_id do enrollment |
 | RN08 | NpsCalculationService | `WHERE value != 'nsa'` no denominador |
@@ -200,7 +200,7 @@ Essa variação é resolvida **em runtime** no formulário público, não na est
 |-------|---------|-------------|-------|
 | `id` | `uuid()->primary()` | PK | |
 | `name` | `string(100)` | required | Nome da unidade escolar |
-| `slug` | `string(50)` | unique | URL-friendly identifier |
+| `slug` | `string(100)` | unique | URL-friendly identifier (padronizado com Subject; ver revisão DBA) |
 | `is_active` | `boolean()->default(true)` | index | |
 | `created_at` | `timestamp` | auto | |
 | `updated_at` | `timestamp` | auto | |
@@ -236,7 +236,7 @@ Essa variação é resolvida **em runtime** no formulário público, não na est
 |-------|---------|-------------|-------|
 | `id` | `uuid()->primary()` | PK | |
 | `name` | `string(100)` | required | |
-| `email` | `string` | index | Unique por `whereNull('deleted_at')` — validação no código (MySQL) |
+| `email` | `string(254)` | index | RFC 5321; unique por `whereNull('deleted_at')` — validação no código (MySQL sem índice parcial) |
 | `password` | `string` | required | Hashed |
 | `role` | `string(20)->default('operator')` | index | Cast → UserRole enum |
 | `is_active` | `boolean()->default(true)` | index | |
@@ -263,7 +263,7 @@ Essa variação é resolvida **em runtime** no formulário público, não na est
 | `created_at` | `timestamp` | auto |
 | `updated_at` | `timestamp` | auto |
 
-**Índice:** `unique(unit_id, user_id)`
+**Índices:** `unique(unit_id, user_id)`, `index('user_id')` — o segundo cobre lookups reversos (`getTenants()`, `$user->units`).
 
 **Casts:**
 ```
@@ -294,7 +294,7 @@ Essa variação é resolvida **em runtime** no formulário público, não na est
 |-------|---------|-------------|-------|
 | `id` | `uuid()->primary()` | PK | |
 | `name` | `string(50)` | required | "Maternal 1", "1º ano", "3ª série" |
-| `slug` | `string(50)` | unique | "maternal-1", "1o-ano", "3a-serie" |
+| `slug` | `string(100)` | unique | "maternal-1", "1o-ano", "3a-serie" |
 | `group` | `string(20)` | index | Cast → SegmentGroup enum (EI, EF1, EF2, EM) |
 | `sort_order` | `unsignedInteger()->default(0)` | index | Ordenação na UI |
 | `is_active` | `boolean()->default(true)` | index | |
@@ -384,7 +384,7 @@ Essa variação é resolvida **em runtime** no formulário público, não na est
 |-------|---------|-------------|-------|
 | `id` | `uuid()->primary()` | PK | |
 | `name` | `string(100)` | required | |
-| `email` | `string` | nullable, index | |
+| `email` | `string(254)` | nullable, index | RFC 5321 |
 | `is_active` | `boolean()->default(true)` | index | |
 | `created_at` | `timestamp` | auto | |
 | `updated_at` | `timestamp` | auto | |
@@ -407,7 +407,7 @@ Essa variação é resolvida **em runtime** no formulário público, não na est
 | `created_at` | `timestamp` | auto |
 | `updated_at` | `timestamp` | auto |
 
-**Índice:** `unique(unit_id, teacher_id)`
+**Índices:** `unique(unit_id, teacher_id)`, `index('teacher_id')` — o segundo cobre lookups reversos (`$teacher->units`).
 
 **Casts:**
 ```
@@ -416,6 +416,8 @@ Essa variação é resolvida **em runtime** no formulário público, não na est
 
 **Scopes:**
 - `scopeActive(Builder $query)` — `where('is_active', true)`
+
+**Soft delete vs `segment_teachers`:** `cascadeOnDelete()` não roda em soft delete. Um `Teacher` apenas *soft-deleted* pode deixar linhas em `segment_teachers` apontando para registro “invisível” ao `belongsTo` padrão. **Mitigação obrigatória (escolher uma ou combinar):** (a) `TeacherObserver` que, no `deleted`, executa *hard delete* das linhas de `segment_teachers` daquele `teacher_id`; (b) queries do formulário público e do admin sempre com `whereHas('teacher')` / escopo que exclua professores deletados. Documentar a escolha no código.
 
 ---
 
@@ -437,7 +439,11 @@ Essa variação é resolvida **em runtime** no formulário público, não na est
 | `created_at` | `timestamp` | auto | |
 | `updated_at` | `timestamp` | auto | |
 
-**Índices:** `unique(unit_id, segment_id, teacher_id, subject_id)` — evita duplicata do mesmo professor no mesmo segmento/disciplina na mesma unidade (MySQL trata `NULL` em `subject_id` de forma especial; na prática EI/EF1 usam `subject_id` null e EF2/EM preenchem — validar unicidade também na camada de aplicação se necessário).
+**Índices e unicidade (MySQL + `subject_id` NULL):** em MySQL, `UNIQUE` com coluna nullable permite **várias** linhas com `subject_id IS NULL` para o mesmo `(unit_id, segment_id, teacher_id)` — violando a intenção de negócio para EI/EF1. **Obrigatório antes de implementar:** (1) **Índice funcional** (MySQL 8.0.13+) criado via `DB::statement()`, p.ex. único sobre expressão do tipo `COALESCE(subject_id, '00000000-0000-0000-0000-000000000000')` em conjunto com `unit_id`, `segment_id`, `teacher_id` (usar UUID sentinela reservado **não** persistido como FK real), **ou** coluna gerada persistida que materialize esse `COALESCE` e uma `unique()` sobre ela; (2) **validação na aplicação** ao criar/atualizar `SegmentTeacher` espelhando a mesma regra. Manter também `index('teacher_id')` para filtros por professor (além do que a FK pode criar implicitamente).
+
+**Invariante `unit_id` ↔ `unit_teacher`:** não existe FK que garanta que o professor pertença à unidade do vínculo. **Obrigatório:** serviço de criação/alteração de `SegmentTeacher` deve validar que existe linha em `unit_teacher` com o mesmo `unit_id` e `teacher_id`. Opcional: trigger MySQL para a mesma checagem em ambiente que exija defesa em profundidade.
+
+**Auditoria (P2 / RF012):** avaliar `created_by` (`foreignUuid` nullable → `users`) nesta tabela e em `Enrollment` se a trilha de “quem cadastrou” for necessária além de `SurveyBatch`.
 
 **Nota:** Sem SoftDeletes — pivot enriquecida gerenciada via sync/detach. Ao vincular professor a uma unidade em `unit_teacher`, os registros em `segment_teachers` devem usar o mesmo `unit_id`.
 
@@ -464,7 +470,7 @@ Essa variação é resolvida **em runtime** no formulário público, não na est
 | `id` | `uuid()->primary()` | PK | |
 | `name` | `string(100)` | required | Nome do aluno |
 | `guardian_name` | `string(100)` | nullable | Nome do responsável |
-| `guardian_email` | `string` | nullable | Email do responsável |
+| `guardian_email` | `string(254)` | nullable | Email do responsável (RFC 5321) |
 | `guardian_phone` | `string(20)` | nullable | Telefone do responsável |
 | `is_active` | `boolean()->default(true)` | index | |
 | `created_at` | `timestamp` | auto | |
@@ -527,6 +533,8 @@ Essa variação é resolvida **em runtime** no formulário público, não na est
 - `scopeCurrentYear(Builder $query)` — `where('year', now()->year)`
 - `scopeActive(Builder $query)` — `where('is_active', true)`
 - `scopeByRegistrationCode(Builder $query, string $code)` — `where('registration_code', $code)`
+
+**Auditoria (P2 / RF012):** opcional `created_by` (`foreignUuid` nullable → `users`) se além de `SurveyBatch` for necessário registrar o autor da matrícula.
 
 ---
 
@@ -666,7 +674,7 @@ Essa variação é resolvida **em runtime** no formulário público, não na est
 | `updated_at` | `timestamp` | auto | |
 | `deleted_at` | `timestamp` | nullable, index | SoftDeletes |
 
-**Índices:** `unique(public_token)`, `index(unit_id, status)`, `index(status, ends_at)` — para scheduler, `index(survey_id)`
+**Índices:** `unique(public_token)`, `index(unit_id, status)`, `index(status, ends_at)` — scheduler; opcional `index(['status', 'starts_at', 'ends_at'])` se filtros por período ganharem volume; `index(survey_id)`
 
 **Relacionamentos:**
 - `belongsTo` → Unit, Survey, User (createdBy)
@@ -715,10 +723,12 @@ Essa variação é resolvida **em runtime** no formulário público, não na est
 | `deleted_at` | `timestamp` | nullable, index | SoftDeletes |
 
 **Índices:**
-- `unique(enrollment_id, survey_batch_id)` — **RN05**: uma resposta por matrícula/lote
+- `unique(enrollment_id, survey_batch_id)` — **RN05**: uma resposta por matrícula/lote (vale para linhas não apagadas fisicamente; ver abaixo)
 - `index(survey_batch_id, is_completed)` — listagem de respostas por lote
 - `index(unit_id, segment_id, is_completed)` — dashboard: NPS por segmento
 - `index(is_completed, completed_at)` — queries de respostas completas
+
+**SoftDeletes vs resubmissão:** com `SoftDeletes`, o `unique(enrollment_id, survey_batch_id)` do MySQL ainda considera linhas com `deleted_at` preenchido. Para permitir nova resposta no mesmo par matrícula/lote após “exclusão” lógica, a operação de negócio deve usar `forceDelete()` na resposta anterior **ou** a constraint/fluxo deve ser redesenhado (p.ex. validação apenas em `whereNull('deleted_at')` sem unique abrangendo soft-deleted — não é o modelo atual). **Decisão v1:** documentar no `CompleteSurveyResponseAction` se resubmissão após soft-delete é permitida; se sim, usar `forceDelete` na resposta antiga antes de inserir a nova.
 
 **Relacionamentos:**
 - `belongsTo` → SurveyBatch, Enrollment, Unit, Segment
@@ -798,6 +808,8 @@ SurveyResponse ──belongsTo──→ Segment
 ### 6.1 Estrutura
 
 O campo `answers` do `SurveyResponse` armazena um JSON com a seguinte estrutura:
+
+**Charset:** banco e conexão Laravel devem usar `utf8mb4` com collation `utf8mb4_unicode_ci` (ou equivalente do projeto) para armazenar texto e JSON com suporte completo a Unicode.
 
 ```json
 {
@@ -1151,7 +1163,7 @@ App\Actions\Survey\
 - CompleteSurveyResponseAction
     execute(SurveyResponseData $data, Enrollment $enrollment, SurveyBatch $batch): SurveyResponse
     Verifica RN04 (batch accepting responses)
-    Verifica RN05 (duplicate response)
+    Verifica RN05 (duplicate response): se existir resposta anterior soft-deleted e a política permitir nova submissão, `forceDelete` antes do insert (ver §5.13)
     Persiste SurveyResponse com answers JSON, is_completed=true, completed_at=now()
     Desnormaliza respondent_type, respondent_name, segment_id, unit_id
     Dispatcha SurveyResponseCompleted
@@ -1232,11 +1244,15 @@ Para filtros por professor e disciplina, os valores estão dentro do JSON (`answ
 |--------|--------|-----|
 | `survey_batches` | `index(status, ends_at)` | Scheduler: buscar lotes expirados |
 | `survey_batches` | `index(unit_id, status)` | Listagem de lotes por tenant |
+| `survey_batches` | `index(status, starts_at, ends_at)` (opcional) | Filtros por período em escala |
 | `enrollments` | `unique(registration_code, unit_id, year)` | Lookup público por matrícula |
 | `enrollments` | `index(unit_id, year)` | Listagem por tenant/ano |
-| `segment_teachers` | `unique(unit_id, segment_id, teacher_id, subject_id)` | Evitar duplicatas por unidade |
+| `segment_teachers` | unicidade funcional / gerada + `COALESCE(subject_id, …)` | Ver §5.6 — não confiar só em `UNIQUE` com `NULL` |
+| `segment_teachers` | `index('teacher_id')` | Listagens por professor |
 | `unit_user` | `unique(unit_id, user_id)` | Um vínculo por par usuário/unidade |
+| `unit_user` | `index('user_id')` | Lookups reversos (`getTenants`) |
 | `unit_teacher` | `unique(unit_id, teacher_id)` | Um vínculo por par professor/unidade |
+| `unit_teacher` | `index('teacher_id')` | Lookups reversos (`$teacher->units`) |
 
 ### 12.3 Cache
 
@@ -1947,7 +1963,7 @@ Alinhadas ao Anexo D do DRF-001, com ordem de migrations detalhada.
 **Migrations (ordem):**
 1. `create_units_table`
 2. `create_users_table` (adicionar `role`, `is_active`; **sem** `unit_id`)
-3. `create_unit_user_table` (pivot `unit_id` + `user_id`, `unique(unit_id, user_id)`)
+3. `create_unit_user_table` (pivot `unit_id` + `user_id`, `unique(unit_id, user_id)`, `index('user_id')`)
 
 **Enums:** `UserRole`
 **Seeders:** `UnitSeeder`, `UserSeeder`
@@ -1964,8 +1980,8 @@ Alinhadas ao Anexo D do DRF-001, com ordem de migrations detalhada.
 5. `create_subjects_table`
 6. `create_segment_subject_table` (pivot)
 7. `create_teachers_table` (**sem** `unit_id`)
-8. `create_unit_teacher_table` (pivot `unit_id` + `teacher_id`, `unique(unit_id, teacher_id)`)
-9. `create_segment_teachers_table` (com coluna `unit_id` + FKs)
+8. `create_unit_teacher_table` (pivot `unit_id` + `teacher_id`, `unique(unit_id, teacher_id)`, `index('teacher_id')`)
+9. `create_segment_teachers_table` (coluna `unit_id` + FKs; **não** usar só `unique(..., subject_id)` com NULL — aplicar unicidade funcional/coluna gerada conforme §5.6; `index('teacher_id')`)
 10. `create_students_table`
 11. `create_enrollments_table`
 
@@ -2028,7 +2044,7 @@ Alinhadas ao Anexo D do DRF-001, com ordem de migrations detalhada.
 
 | Passo | Agente/Ação | Descrição |
 |:-----:|-------------|-----------|
-| 1 | **dba** | Revisar estrutura de dados proposta — normalização, índices, tipos de campo, constraints |
+| 1 | **dba** | Revisão registrada em [DBA-REVIEW-DTA-001](DBA-REVIEW-DTA-001.md); itens P0–P2 incorporados na v1.2 deste DTA |
 | 2 | **implementer** | Implementar Fase 1 (Base) — migrations, models, enums, seeders, panel config |
 | 3 | **implementer** | Implementar Fase 2 (Cadastros) — models, resources, import CSV |
 | 4 | **implementer** | Implementar Fase 3 (Template) — survey models, seeders, resource |
@@ -2056,6 +2072,8 @@ Alinhadas ao Anexo D do DRF-001, com ordem de migrations detalhada.
 | Desnormalizações em `survey_responses` | Documentadas na migration; mantidas consistentes pela CompleteSurveyResponseAction |
 | User/Teacher N:N com Unit aumenta complexidade no Filament (query + sync pivot) | Mitigar com `getEloquentQuery()` + attach/sync explícito nos Resources e `unit_id` em `SegmentTeacher` |
 | MySQL sem índice parcial para unique + soft deletes | Validação via `Rule::unique()->whereNull('deleted_at')` no código |
+| `survey_responses` unique vs soft-delete impede resubmissão silenciosa | Definir política em Action: `forceDelete` da resposta anterior ou proibir nova submissão enquanto existir linha (mesmo soft-deleted) |
+| Charset não utf8mb4 | Garantir `utf8mb4` / `utf8mb4_unicode_ci` no deploy (Docker, `config/database.php`) |
 
 ---
 
@@ -2063,5 +2081,6 @@ Alinhadas ao Anexo D do DRF-001, com ordem de migrations detalhada.
 
 | Versão | Data | Autor | Descrição |
 |--------|------|-------|-----------|
+| 1.2 | 2026-04-22 | — | Ajustes pós-revisão DBA ([DBA-REVIEW-DTA-001](DBA-REVIEW-DTA-001.md)): unicidade `segment_teachers` com `subject_id` NULL; invariante `unit_teacher`; índices em pivots e `teacher_id`; slugs/email RFC; SurveyResponse + soft delete; charset; índice opcional em `survey_batches`; `Teacher` soft delete vs pivot. |
 | 1.1 | 2026-04-22 | — | `User` e `Teacher` N:N com `Unit` via `unit_user` e `unit_teacher`; `SegmentTeacher` com `unit_id` explícito. |
 | 1.0 | 2026-04-22 | Architect Agent | Versão inicial baseada no DRF-001. |
