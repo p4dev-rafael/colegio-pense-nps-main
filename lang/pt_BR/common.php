@@ -18,6 +18,8 @@ return [
         'general' => 'Informações gerais',
         'access' => 'Acesso',
         'units' => 'Unidades',
+        'guardian' => 'Responsável',
+        'classification' => 'Classificação',
     ],
     'actions' => [
         'create' => 'Criar',

@@ -13,6 +13,9 @@ final class DatabaseSeeder extends Seeder
         $this->call([
             UnitSeeder::class,
             UserSeeder::class,
+            SegmentSeeder::class,
+            SubjectSeeder::class,
+            SegmentSubjectSeeder::class,
         ]);
     }
 }

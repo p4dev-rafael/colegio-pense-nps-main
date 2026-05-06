@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -42,6 +43,32 @@ final class Unit extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'unit_user')->withTimestamps();
+    }
+
+    /**
+     * @return BelongsToMany<Teacher, $this>
+     */
+    public function teachers(): BelongsToMany
+    {
+        return $this->belongsToMany(Teacher::class, 'unit_teacher')
+            ->using(UnitTeacherPivot::class)
+            ->withTimestamps();
+    }
+
+    /**
+     * @return HasMany<Enrollment, $this>
+     */
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(Enrollment::class);
+    }
+
+    /**
+     * @return HasMany<SegmentTeacher, $this>
+     */
+    public function segmentTeachers(): HasMany
+    {
+        return $this->hasMany(SegmentTeacher::class);
     }
 
     /**

@@ -18,6 +18,8 @@ return [
         'general' => 'General information',
         'access' => 'Access',
         'units' => 'Units',
+        'guardian' => 'Guardian',
+        'classification' => 'Classification',
     ],
     'actions' => [
         'create' => 'Create',

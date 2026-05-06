@@ -16,12 +16,12 @@ beforeEach(function (): void {
 });
 
 test('admin user is linked to both seeded units', function (): void {
-    $admin = User::query()->where('email', 'admin@colegiopense.edu.br')->firstOrFail();
+    $admin = User::query()->where('email', 'test@example.com')->firstOrFail();
     expect($admin->units)->toHaveCount(2);
 });
 
 test('admin can access both tenants', function (): void {
-    $admin = User::query()->where('email', 'admin@colegiopense.edu.br')->firstOrFail();
+    $admin = User::query()->where('email', 'test@example.com')->firstOrFail();
     $north = Unit::query()->where('slug', 'unidade-norte')->firstOrFail();
     $south = Unit::query()->where('slug', 'unidade-sul')->firstOrFail();
 
@@ -36,7 +36,7 @@ test('operator cannot view any users per policy', function (): void {
 });
 
 test('admin can view any users per policy', function (): void {
-    $admin = User::query()->where('email', 'admin@colegiopense.edu.br')->firstOrFail();
+    $admin = User::query()->where('email', 'test@example.com')->firstOrFail();
 
     expect($admin->can('viewAny', User::class))->toBeTrue();
 });
