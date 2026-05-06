@@ -20,6 +20,8 @@ return [
         'units' => 'Units',
         'guardian' => 'Guardian',
         'classification' => 'Classification',
+        'questions' => 'Questions',
+        'sections' => 'Sections',
     ],
     'actions' => [
         'create' => 'Create',

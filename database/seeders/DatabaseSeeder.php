@@ -16,6 +16,7 @@ final class DatabaseSeeder extends Seeder
             SegmentSeeder::class,
             SubjectSeeder::class,
             SegmentSubjectSeeder::class,
+            SurveyTemplateSeeder::class,
         ]);
     }
 }
