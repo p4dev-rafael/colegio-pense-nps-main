@@ -6,6 +6,7 @@ return [
     'groups' => [
         'cadastros' => 'Records',
         'pesquisas' => 'Surveys',
+        'relatorios' => 'Reports',
         'settings' => 'Settings',
     ],
 ];
