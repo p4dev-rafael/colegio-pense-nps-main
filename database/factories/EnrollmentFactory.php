@@ -41,6 +41,7 @@ final class EnrollmentFactory extends Factory
         ]);
     }
 
+    public function currentYear(Unit $unit, Segment $segment, Student $student): static
     {
         $year = (int) now()->year;
 
@@ -49,7 +50,7 @@ final class EnrollmentFactory extends Factory
             'segment_id' => $segment->id,
             'student_id' => $student->id,
             'year' => $year,
-            'registration_code' => sprintf('MAT%04d', $registrationSeq),
+            'registration_code' => 'MAT'.fake()->unique()->numerify('######'),
             'is_active' => true,
         ]);
     }

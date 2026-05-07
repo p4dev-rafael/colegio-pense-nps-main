@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -68,11 +69,37 @@ final class Enrollment extends Model
     }
 
     /**
+     * @return HasMany<SurveyResponse, $this>
+     */
+    public function surveyResponses(): HasMany
+    {
+        return $this->hasMany(SurveyResponse::class);
+    }
+
+    /**
      * @param  Builder<Enrollment>  $query
      * @return Builder<Enrollment>
      */
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    /**
+     * @param  Builder<Enrollment>  $query
+     * @return Builder<Enrollment>
+     */
+    public function scopeCurrentYear(Builder $query): Builder
+    {
+        return $query->where('year', (int) now()->year);
+    }
+
+    /**
+     * @param  Builder<Enrollment>  $query
+     * @return Builder<Enrollment>
+     */
+    public function scopeByRegistrationCode(Builder $query, string $code): Builder
+    {
+        return $query->where('registration_code', $code);
     }
 }

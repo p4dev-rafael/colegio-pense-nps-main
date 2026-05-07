@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Exceptions\Survey\SurveyException;
 use App\Models\Enrollment;
 use App\Models\Segment;
 use App\Models\Student;
@@ -22,6 +23,41 @@ final class EnrollmentResolverService
             ->where('unit_id', $unitId)
             ->where('year', $year)
             ->first();
+    }
+
+    /**
+     * Resolves an enrollment for the public survey form.
+     *
+     * @throws SurveyException
+     */
+    public function resolveForPublicSurvey(string $registrationCode, string $unitId, ?int $year = null): Enrollment
+    {
+        $year ??= (int) now()->year;
+
+        $code = trim($registrationCode);
+
+        $existsAnyYear = Enrollment::query()
+            ->where('registration_code', $code)
+            ->where('unit_id', $unitId)
+            ->exists();
+
+        if (! $existsAnyYear) {
+            throw SurveyException::invalidRegistrationCode($code);
+        }
+
+        $enrollment = Enrollment::query()
+            ->with(['student', 'segment', 'unit'])
+            ->where('registration_code', $code)
+            ->where('unit_id', $unitId)
+            ->where('year', $year)
+            ->where('is_active', true)
+            ->first();
+
+        if ($enrollment === null) {
+            throw SurveyException::noEnrollmentCurrentYear($code, $year);
+        }
+
+        return $enrollment;
     }
 
     /**

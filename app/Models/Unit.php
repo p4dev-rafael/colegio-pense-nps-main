@@ -72,6 +72,22 @@ final class Unit extends Model
     }
 
     /**
+     * @return HasMany<SurveyBatch, $this>
+     */
+    public function surveyBatches(): HasMany
+    {
+        return $this->hasMany(SurveyBatch::class);
+    }
+
+    /**
+     * @return HasMany<SurveyResponse, $this>
+     */
+    public function surveyResponses(): HasMany
+    {
+        return $this->hasMany(SurveyResponse::class);
+    }
+
+    /**
      * @param  Builder<Unit>  $query
      * @return Builder<Unit>
      */

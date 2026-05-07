@@ -29,4 +29,14 @@ return [
         'institutional' => 'Avaliação Institucional',
         'nps_final' => 'NPS Final',
     ],
+    'survey_batch_status' => [
+        'draft' => 'Rascunho',
+        'active' => 'Ativo',
+        'closed' => 'Encerrado',
+    ],
+    'respondent_type' => [
+        'student' => 'Aluno',
+        'guardian' => 'Responsável',
+        'anonymous' => 'Anônimo',
+    ],
 ];

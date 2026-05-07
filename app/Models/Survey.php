@@ -45,6 +45,14 @@ final class Survey extends Model
     }
 
     /**
+     * @return HasMany<SurveyBatch, $this>
+     */
+    public function surveyBatches(): HasMany
+    {
+        return $this->hasMany(SurveyBatch::class);
+    }
+
+    /**
      * @param  Builder<Survey>  $query
      * @return Builder<Survey>
      */
