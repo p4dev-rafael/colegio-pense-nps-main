@@ -24,4 +24,9 @@ return [
         'audit' => 'Audit',
         'answers' => 'Answers',
     ],
+    'display' => [
+        'no_answers' => 'No answers recorded.',
+        'unknown_section' => 'Section :code (not in the current template)',
+        'survey_unavailable' => 'Could not load the survey linked to this batch. Showing raw data.',
+    ],
 ];

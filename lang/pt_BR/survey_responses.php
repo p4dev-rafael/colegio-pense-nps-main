@@ -24,4 +24,9 @@ return [
         'audit' => 'Auditoria',
         'answers' => 'Respostas',
     ],
+    'display' => [
+        'no_answers' => 'Nenhuma resposta registrada.',
+        'unknown_section' => 'Seção :code (fora do modelo atual)',
+        'survey_unavailable' => 'Não foi possível carregar o questionário vinculado ao lote. Exibindo os dados brutos.',
+    ],
 ];
