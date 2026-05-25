@@ -31,4 +31,11 @@ return [
         'sort_order' => 'Ordem',
         'is_active' => 'Ativa',
     ],
+    'actions' => [
+        'clone' => 'Duplicar',
+    ],
+    'messages' => [
+        'cloned' => 'Pesquisa duplicada com sucesso.',
+        'clone_default_title' => ':title (cópia)',
+    ],
 ];

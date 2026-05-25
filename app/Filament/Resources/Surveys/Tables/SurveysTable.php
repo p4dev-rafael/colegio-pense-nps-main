@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Surveys\Tables;
 
+use App\Actions\Survey\CloneSurveyAction;
+use App\Filament\Resources\Surveys\SurveyResource;
+use App\Models\Survey;
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -11,10 +16,14 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 
 final class SurveysTable
 {
@@ -44,8 +53,31 @@ final class SurveysTable
             ])
             ->recordActions([
                 ViewAction::make(),
-                EditAction::make(),
-                DeleteAction::make(),
+                ActionGroup::make([
+                    EditAction::make(),
+                    Action::make('clone')
+                        ->label(__('surveys.actions.clone'))
+                        ->icon(Heroicon::OutlinedDocumentDuplicate)
+                        ->authorize(fn(Survey $record): bool => Auth::user()?->can('create', Survey::class) === true)
+                        ->form([
+                            TextInput::make('title')
+                                ->label(__('surveys.fields.title'))
+                                ->required()
+                                ->maxLength(200)
+                                ->default(fn(Survey $record): string => __('surveys.messages.clone_default_title', ['title' => $record->title])),
+                        ])
+                        ->action(function (Survey $record, array $data) {
+                            $clone = app(CloneSurveyAction::class)->execute($record, $data['title']);
+
+                            Notification::make()
+                                ->title(__('surveys.messages.cloned'))
+                                ->success()
+                                ->send();
+
+                            return redirect(SurveyResource::getUrl('edit', ['record' => $clone]));
+                        }),
+                    DeleteAction::make(),
+                ]),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

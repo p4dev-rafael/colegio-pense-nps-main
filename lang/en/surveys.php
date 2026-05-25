@@ -31,4 +31,11 @@ return [
         'sort_order' => 'Order',
         'is_active' => 'Active',
     ],
+    'actions' => [
+        'clone' => 'Clone',
+    ],
+    'messages' => [
+        'cloned' => 'Survey cloned successfully.',
+        'clone_default_title' => ':title (copy)',
+    ],
 ];
