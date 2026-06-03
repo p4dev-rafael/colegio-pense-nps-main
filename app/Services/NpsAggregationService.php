@@ -91,7 +91,7 @@ final class NpsAggregationService
         array &$bySection15,
         NpsDashboardFiltersData $filters,
     ): void {
-        if ($sectionKey === 'S1' || $this->isTeachersStructure($sectionPayload)) {
+        if ($this->isTeachersStructure($sectionPayload)) {
             $this->collectTeachersSectionAnswers(
                 $sectionPayload,
                 $overall15,

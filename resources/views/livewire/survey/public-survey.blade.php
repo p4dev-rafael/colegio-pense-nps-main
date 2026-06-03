@@ -107,7 +107,7 @@
                         @endif
                     </header>
 
-                    @if ($section['type'] === SectionType::Teachers->value)
+                    @if ($section['type'] === SectionType::Teachers->value && $batch->requires_identification)
                         @if (count($teacherSlots) === 0)
                             <p class="text-sm text-gray-500">—</p>
                         @endif

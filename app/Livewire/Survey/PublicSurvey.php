@@ -264,10 +264,15 @@ final class PublicSurvey extends Component
         $this->sectionsView = $sectionsView;
         $this->sectionAnswers = $sectionAnswers;
 
-        $this->teacherSlots = $enrollment !== null
+        $this->teacherSlots = $this->usesPerTeacherEvaluation() && $enrollment !== null
             ? $this->buildTeacherSlots($enrollment)
             : [];
         $this->teacherAnswers = $this->initializeTeacherAnswers();
+    }
+
+    private function usesPerTeacherEvaluation(): bool
+    {
+        return $this->batch?->requires_identification ?? true;
     }
 
     /**
@@ -338,7 +343,8 @@ final class PublicSurvey extends Component
 
         foreach ($this->sectionsView as $section) {
             $sectionKey = $section['key'];
-            $isTeachers = $section['type'] === SectionType::Teachers->value;
+            $isTeachers = $section['type'] === SectionType::Teachers->value
+                && $this->usesPerTeacherEvaluation();
 
             if ($isTeachers) {
                 $teachers = [];
@@ -383,7 +389,8 @@ final class PublicSurvey extends Component
 
         foreach ($this->sectionsView as $section) {
             $sectionKey = $section['key'];
-            $isTeachers = $section['type'] === SectionType::Teachers->value;
+            $isTeachers = $section['type'] === SectionType::Teachers->value
+                && $this->usesPerTeacherEvaluation();
 
             foreach ($section['questions'] as $question) {
                 if (! $question['is_required']) {
