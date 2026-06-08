@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Surveys\RelationManagers;
 
+use App\Actions\Survey\CloneSurveySectionAction;
 use App\Enums\QuestionType;
 use App\Enums\SectionType;
+use App\Models\SurveySection;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -21,22 +24,27 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rules\Unique;
 
 final class SurveySectionsRelationManager extends RelationManager
 {
     protected static string $relationship = 'surveySections';
 
-    public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
+    public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('surveys.sections.survey_sections_title');
     }
@@ -92,7 +100,7 @@ final class SurveySectionsRelationManager extends RelationManager
                                         table: 'survey_questions',
                                         column: 'code',
                                         ignoreRecord: true,
-                                        modifyRuleUsing: fn (\Illuminate\Validation\Rules\Unique $rule) => $rule->whereNull('deleted_at'),
+                                        modifyRuleUsing: fn (Unique $rule) => $rule->whereNull('deleted_at'),
                                     ),
                                 Select::make('type')
                                     ->label(__('surveys.question_fields.type'))
@@ -161,6 +169,26 @@ final class SurveySectionsRelationManager extends RelationManager
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
+                Action::make('clone')
+                    ->label(__('surveys.actions.clone'))
+                    ->icon(Heroicon::OutlinedDocumentDuplicate)
+                    ->authorize(fn (SurveySection $record): bool => Auth::user()?->can('create', SurveySection::class) === true)
+                    ->visible(fn (SurveySection $record): bool => ! $record->trashed())
+                    ->form([
+                        TextInput::make('title')
+                            ->label(__('surveys.section_fields.title'))
+                            ->required()
+                            ->maxLength(100)
+                            ->default(fn (SurveySection $record): string => __('surveys.messages.section_clone_default_title', ['title' => $record->title])),
+                    ])
+                    ->action(function (SurveySection $record, array $data): void {
+                        app(CloneSurveySectionAction::class)->execute($record, $data['title']);
+
+                        Notification::make()
+                            ->title(__('surveys.messages.section_cloned'))
+                            ->success()
+                            ->send();
+                    }),
                 DeleteAction::make(),
                 ForceDeleteAction::make(),
                 RestoreAction::make(),

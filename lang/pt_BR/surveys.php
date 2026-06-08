@@ -37,5 +37,7 @@ return [
     'messages' => [
         'cloned' => 'Pesquisa duplicada com sucesso.',
         'clone_default_title' => ':title (cópia)',
+        'section_cloned' => 'Seção duplicada com sucesso.',
+        'section_clone_default_title' => ':title (cópia)',
     ],
 ];

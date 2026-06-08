@@ -37,5 +37,7 @@ return [
     'messages' => [
         'cloned' => 'Survey cloned successfully.',
         'clone_default_title' => ':title (copy)',
+        'section_cloned' => 'Survey section cloned successfully.',
+        'section_clone_default_title' => ':title (copy)',
     ],
 ];
