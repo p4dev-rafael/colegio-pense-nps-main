@@ -7,6 +7,7 @@ services:
         GROUP_ID: ${DOCKER_GID:-1000}
     container_name: colegio-pense-nps-main
     restart: unless-stopped
+    shm_size: "256mb"
     volumes:
       - .:/var/www
     ports:

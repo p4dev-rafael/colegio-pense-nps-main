@@ -4,7 +4,7 @@ FROM php:8.4-fpm-alpine
 ARG USER_ID=1000
 ARG GROUP_ID=1000
 
-# Install system dependencies
+# Install system dependencies (incl. Node + Chromium for Spatie Browsershot PDFs)
 RUN apk add --no-cache \
     nginx \
     supervisor \
@@ -16,7 +16,28 @@ RUN apk add --no-cache \
     unzip \
     sqlite-dev \
     icu-dev \
-    shadow
+    shadow \
+    nodejs \
+    npm \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    font-noto \
+    dbus \
+    udev
+
+# Puppeteer uses system Chromium (skip bundled download)
+# Alpine ships the binary under /usr/lib/chromium/
+RUN ln -sfn /usr/lib/chromium/chromium /usr/bin/chromium-browser \
+    && ln -sfn /usr/lib/chromium/chromium /usr/bin/chromium
+
+ENV PUPPETEER_SKIP_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/lib/chromium/chromium
+
+RUN npm install -g puppeteer@24
 
 # Create a developer user or sync www-data UID/GID
 RUN usermod -u ${USER_ID} www-data && \
