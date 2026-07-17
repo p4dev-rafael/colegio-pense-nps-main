@@ -6,6 +6,7 @@ namespace App\Actions\Survey;
 
 use App\Models\SurveyBatch;
 use App\Services\SurveyBatchPdfReportBuilder;
+use App\Support\Pdf\BrowsershotConfigurator;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Spatie\Browsershot\Browsershot;
@@ -15,7 +16,10 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 final class ExportSurveyBatchPdfAction
 {
-    public function __construct(private readonly SurveyBatchPdfReportBuilder $reportBuilder) {}
+    public function __construct(
+        private readonly SurveyBatchPdfReportBuilder $reportBuilder,
+        private readonly BrowsershotConfigurator $browsershotConfigurator,
+    ) {}
 
     public function execute(SurveyBatch $batch): BinaryFileResponse
     {
@@ -32,31 +36,7 @@ final class ExportSurveyBatchPdfAction
             ->margins(top: 10, right: 10, bottom: 12, left: 10)
             ->name($filename)
             ->withBrowsershot(function (Browsershot $browsershot): void {
-                $nodeBinary = config('services.browsershot.node_binary') ?: '/usr/bin/node';
-                $npmBinary = config('services.browsershot.npm_binary') ?: '/usr/bin/npm';
-                $chromePath = config('services.browsershot.chrome_path')
-                    ?: (realpath('/usr/lib/chromium/chromium') ?: null);
-
-                if (is_executable($nodeBinary)) {
-                    $browsershot->setNodeBinary($nodeBinary);
-                }
-
-                if (is_executable($npmBinary)) {
-                    $browsershot->setNpmBinary($npmBinary);
-                }
-
-                if (is_string($chromePath) && is_executable($chromePath)) {
-                    $browsershot->setChromePath($chromePath);
-                }
-
-                if (config('services.browsershot.no_sandbox', true)) {
-                    $browsershot->noSandbox();
-                }
-
-                $browsershot->addChromiumArguments([
-                    'disable-dev-shm-usage',
-                    'disable-gpu',
-                ]);
+                $this->browsershotConfigurator->configure($browsershot);
             })
             ->save($path);
 
