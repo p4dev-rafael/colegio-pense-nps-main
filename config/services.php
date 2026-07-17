@@ -36,9 +36,10 @@ return [
     ],
 
     'browsershot' => [
-        'node_binary' => env('BROWSERSHOT_NODE_BINARY', env('LARAVEL_PDF_NODE_BINARY')),
-        'npm_binary' => env('BROWSERSHOT_NPM_BINARY', env('LARAVEL_PDF_NPM_BINARY')),
-        'chrome_path' => env('BROWSERSHOT_CHROME_PATH', env('LARAVEL_PDF_CHROME_PATH')),
+        'node_binary' => env('BROWSERSHOT_NODE_BINARY') ?: env('LARAVEL_PDF_NODE_BINARY'),
+        'npm_binary' => env('BROWSERSHOT_NPM_BINARY') ?: env('LARAVEL_PDF_NPM_BINARY'),
+        'chrome_path' => env('BROWSERSHOT_CHROME_PATH') ?: env('LARAVEL_PDF_CHROME_PATH'),
+        'chrome_home' => env('BROWSERSHOT_CHROME_HOME') ?: env('LARAVEL_PDF_CHROME_HOME'),
         'no_sandbox' => filter_var(
             env('BROWSERSHOT_NO_SANDBOX', env('LARAVEL_PDF_NO_SANDBOX', true)),
             FILTER_VALIDATE_BOOL,

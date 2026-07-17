@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Pdf;
 
+use Illuminate\Support\Facades\File;
 use RuntimeException;
 use Spatie\Browsershot\Browsershot;
 
@@ -68,9 +69,23 @@ final class BrowsershotConfigurator
             $browsershot->noSandbox();
         }
 
+        $chromeHome = $this->ensureChromeHome();
+
+        $browsershot->setEnvironmentOptions([
+            'HOME' => $chromeHome,
+            'XDG_CONFIG_HOME' => $chromeHome.DIRECTORY_SEPARATOR.'config',
+            'XDG_CACHE_HOME' => $chromeHome.DIRECTORY_SEPARATOR.'cache',
+        ]);
+
         $browsershot->addChromiumArguments([
             'disable-dev-shm-usage',
             'disable-gpu',
+            'disable-crash-reporter',
+            'disable-extensions',
+            'no-first-run',
+            'no-default-browser-check',
+            'hide-scrollbars',
+            'mute-audio',
         ]);
     }
 
@@ -95,6 +110,22 @@ final class BrowsershotConfigurator
         }
 
         return $this->firstExecutable(self::CHROME_CANDIDATES);
+    }
+
+    public function ensureChromeHome(): string
+    {
+        $configured = config('laravel-pdf.browsershot.chrome_home')
+            ?: config('services.browsershot.chrome_home');
+
+        $home = is_string($configured) && $configured !== ''
+            ? $configured
+            : storage_path('app/chrome');
+
+        File::ensureDirectoryExists($home);
+        File::ensureDirectoryExists($home.DIRECTORY_SEPARATOR.'config');
+        File::ensureDirectoryExists($home.DIRECTORY_SEPARATOR.'cache');
+
+        return $home;
     }
 
     /**

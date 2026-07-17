@@ -22,6 +22,8 @@ return [
         'npm_binary' => env('LARAVEL_PDF_NPM_BINARY') ?: env('BROWSERSHOT_NPM_BINARY'),
         'include_path' => env('LARAVEL_PDF_INCLUDE_PATH'),
         'chrome_path' => env('LARAVEL_PDF_CHROME_PATH') ?: env('BROWSERSHOT_CHROME_PATH'),
+        // Writable HOME for Chrome under PHP-FPM (avoids crashpad --database errors).
+        'chrome_home' => env('LARAVEL_PDF_CHROME_HOME') ?: env('BROWSERSHOT_CHROME_HOME'),
         'node_modules_path' => env('LARAVEL_PDF_NODE_MODULES_PATH'),
         'bin_path' => env('LARAVEL_PDF_BIN_PATH'),
         'temp_path' => env('LARAVEL_PDF_TEMP_PATH'),
