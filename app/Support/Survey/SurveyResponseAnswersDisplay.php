@@ -30,7 +30,9 @@ final class SurveyResponseAnswersDisplay
             return new HtmlString(self::fallbackPreformattedJson($response->answers));
         }
 
-        $sectionsPayload = self::extractSectionsPayload(self::answersToArray($response->answers));
+        $sectionsPayload = SurveyAnswerParser::extractSectionsPayload(
+            SurveyAnswerParser::answersToArray($response->answers),
+        );
 
         if ($sectionsPayload === []) {
             return new HtmlString(
@@ -101,7 +103,12 @@ final class SurveyResponseAnswersDisplay
 
         foreach ($templateQuestions as $question) {
             $seenCodes[$question->code] = true;
-            $html .= self::renderQuestionRow($question->text, self::normalizedAnswerValue($payloadQuestions, $question->code));
+            $html .= self::renderQuestionRow(
+                $question->text,
+                SurveyAnswerParser::formatDisplayValue(
+                    SurveyAnswerParser::extractRawValue($payloadQuestions, $question->code),
+                ),
+            );
         }
 
         foreach ($payloadQuestions as $code => $_) {
@@ -109,7 +116,12 @@ final class SurveyResponseAnswersDisplay
                 continue;
             }
 
-            $html .= self::renderQuestionRow($code, self::normalizedAnswerValue($payloadQuestions, $code));
+            $html .= self::renderQuestionRow(
+                $code,
+                SurveyAnswerParser::formatDisplayValue(
+                    SurveyAnswerParser::extractRawValue($payloadQuestions, $code),
+                ),
+            );
         }
 
         $html .= '</dl>';
@@ -130,23 +142,8 @@ final class SurveyResponseAnswersDisplay
      */
     private static function renderTeachersBlocks(SurveySection $section, array $teachersPayload): string
     {
-        $entries = [];
-        foreach ($teachersPayload as $entry) {
-            if (is_array($entry)) {
-                $entries[] = $entry;
-            }
-        }
-
-        usort(
-            $entries,
-            fn (array $a, array $b): int => strcmp(
-                (string) ($a['teacher_name'] ?? ''),
-                (string) ($b['teacher_name'] ?? ''),
-            ),
-        );
-
         $html = '';
-        foreach ($entries as $entry) {
+        foreach (SurveyAnswerParser::normalizeTeacherEntries($teachersPayload) as $entry) {
             $name = (string) ($entry['teacher_name'] ?? '—');
             $html .= '<div class="mt-4 rounded-lg bg-gray-50 p-3 dark:bg-white/5">';
             $html .= '<h4 class="font-medium text-gray-900 dark:text-white">'.e($name).'</h4>';
@@ -184,23 +181,8 @@ final class SurveyResponseAnswersDisplay
      */
     private static function renderUnknownTeachersBlocks(array $teachersPayload): string
     {
-        $entries = [];
-        foreach ($teachersPayload as $entry) {
-            if (is_array($entry)) {
-                $entries[] = $entry;
-            }
-        }
-
-        usort(
-            $entries,
-            fn (array $a, array $b): int => strcmp(
-                (string) ($a['teacher_name'] ?? ''),
-                (string) ($b['teacher_name'] ?? ''),
-            ),
-        );
-
         $html = '';
-        foreach ($entries as $entry) {
+        foreach (SurveyAnswerParser::normalizeTeacherEntries($teachersPayload) as $entry) {
             $name = (string) ($entry['teacher_name'] ?? '—');
             $html .= '<div class="mt-3 rounded-lg bg-white/60 p-3 dark:bg-black/20">';
             $html .= '<h4 class="font-medium text-amber-950 dark:text-amber-50">'.e($name).'</h4>';
@@ -212,82 +194,9 @@ final class SurveyResponseAnswersDisplay
         return $html;
     }
 
-    /**
-     * @param  array<string, mixed>  $payloadQuestions
-     */
-    private static function normalizedAnswerValue(array $payloadQuestions, string $code): string
-    {
-        if (! array_key_exists($code, $payloadQuestions)) {
-            return '—';
-        }
-
-        $payload = $payloadQuestions[$code];
-        $raw = is_array($payload) ? ($payload['value'] ?? null) : $payload;
-
-        return self::formatAnswerValue($raw);
-    }
-
-    private static function formatAnswerValue(mixed $value): string
-    {
-        if ($value === null || $value === '') {
-            return '—';
-        }
-
-        if (is_string($value) && strcasecmp($value, 'nsa') === 0) {
-            return __('survey.public.form.nsa_option');
-        }
-
-        if (is_scalar($value)) {
-            return (string) $value;
-        }
-
-        $encoded = json_encode($value, JSON_UNESCAPED_UNICODE);
-
-        return ($encoded !== false && $encoded !== '') ? $encoded : '—';
-    }
-
-    /**
-     * @param  array<string, mixed>  $answersRoot
-     * @return array<string, mixed>
-     */
-    private static function extractSectionsPayload(array $answersRoot): array
-    {
-        if (isset($answersRoot['sections']) && is_array($answersRoot['sections'])) {
-            return $answersRoot['sections'];
-        }
-
-        if (isset($answersRoot['version'])) {
-            return [];
-        }
-
-        return $answersRoot;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private static function answersToArray(mixed $state): array
-    {
-        if ($state === null) {
-            return [];
-        }
-
-        if (is_array($state)) {
-            return $state;
-        }
-
-        if (is_string($state) && $state !== '') {
-            $decoded = json_decode($state, true);
-
-            return is_array($decoded) ? $decoded : [];
-        }
-
-        return [];
-    }
-
     private static function fallbackPreformattedJson(mixed $answers): string
     {
-        $encoded = json_encode(self::answersToArray($answers), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '—';
+        $encoded = json_encode(SurveyAnswerParser::answersToArray($answers), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '—';
         $intro = e(__('survey_responses.display.survey_unavailable'));
 
         return '<div class="space-y-2">'
